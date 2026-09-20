@@ -4,7 +4,6 @@
 def avg_temp(entries):
     """Calculates the average temperature across weather records."""
     if not entries:
-        # BUG: Returns None for empty input, causing format string TypeError in callers
         return None
 
     temps = [e["temp"] for e in entries if "temp" in e]

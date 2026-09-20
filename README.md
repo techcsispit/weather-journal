@@ -179,7 +179,7 @@ We welcome and appreciate contributions from everyone participating in **Source 
    - Test manually in your terminal with sample CLI calls.
 5. **Commit Your Work:** Write clear, descriptive commit messages:
    ```bash
-   git commit -m "fix: improve error handling for city query"
+   git commit -m "fix: resolve issue description"
    ```
 6. **Push to Your Fork:**
    ```bash
@@ -191,7 +191,7 @@ We welcome and appreciate contributions from everyone participating in **Source 
 
 - 🔁 `good first issue`: Ideal for beginners and first-time contributors.
 - 🐛 `bug`: Fixing API parsing discrepancies, error crashes, or query boundaries.
-- ✨ `enhancement`: Introducing new metric calculations, caching layers, or export formats.
+- ✨ `enhancement`: Introducing new metric calculations, command options, or export formats.
 
 > 📌 **Note:** All active tasks and bug reports will be announced in the **[Issues](../../issues)** tab. Check the tab to pick your first issue!
 

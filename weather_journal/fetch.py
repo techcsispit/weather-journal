@@ -15,7 +15,6 @@ def get_current(city, api_key=None):
     if not key:
         raise ValueError("Missing API key. Please set OWM_API_KEY environment variable or pass --key.")
 
-    # BUG: Missing '&units=metric', causing API to return temperatures in Kelvin
     params = {
         "q": city,
         "appid": key
@@ -24,7 +23,6 @@ def get_current(city, api_key=None):
     resp = requests.get(API_BASE_URL, params=params, timeout=10)
     data = resp.json()
 
-    # BUG: Directly accesses 'main' without verifying if API returned a 404 or error response
     return {
         "city": data["name"],
         "temp": round(data["main"]["temp"], 1),

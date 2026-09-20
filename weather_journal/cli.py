@@ -19,7 +19,6 @@ def cmd_log(args):
 
 
 def cmd_history(args):
-    # BUG: args.city is optional and defaults to None, which dumps all cities in database
     records = get_history(args.city, db_path=args.db)
     if not records:
         print("No records found.")
@@ -38,7 +37,6 @@ def cmd_stats(args):
     records = get_history(args.city, db_path=args.db)
     if not records:
         print(f"No records logged for '{args.city}'.")
-        # Demonstrates bug when attempting to compute stats on empty records
         avg = avg_temp(records)
         print(f"Average: {avg:.1f}°C")
         return
@@ -69,7 +67,6 @@ def main():
 
     # history
     p_hist = subparsers.add_parser("history", help="Show logged weather history")
-    # BUG: city should be required, but nargs='?' allows omitting it
     p_hist.add_argument("city", nargs="?", default=None, help="City name")
     p_hist.set_defaults(func=cmd_history)
 
