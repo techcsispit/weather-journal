@@ -7,6 +7,11 @@ from weather_journal.store import save_entry, get_history, DEFAULT_DB_PATH
 from weather_journal.stats import avg_temp, hottest_day, rainy_days
 
 
+def cmd_add(args):
+    save_entry(args.city, args.temp, args.humidity, args.condition, db_path=args.db)
+    print(f"Logged manually: {args.city} - {args.temp}°C, {args.humidity}% humidity, {args.condition}")
+
+
 def cmd_log(args):
     try:
         data = get_current(args.city, args.key)
@@ -64,6 +69,14 @@ def main():
     p_log.add_argument("city", help="City name (e.g. Mumbai, London)")
     p_log.add_argument("--key", default=None, help="OpenWeatherMap API Key")
     p_log.set_defaults(func=cmd_log)
+
+    # add
+    p_add = subparsers.add_parser("add", help="Log weather by hand")
+    p_add.add_argument("city", help="City name")
+    p_add.add_argument("temp", type=float, help="Temperature in °C")
+    p_add.add_argument("humidity", type=int, help="Humidity percentage")
+    p_add.add_argument("condition", help="Weather condition description")
+    p_add.set_defaults(func=cmd_add)
 
     # history
     p_hist = subparsers.add_parser("history", help="Show logged weather history")
