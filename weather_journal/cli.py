@@ -37,8 +37,6 @@ def cmd_stats(args):
     records = get_history(args.city, db_path=args.db)
     if not records:
         print(f"No records logged for '{args.city}'.")
-        avg = avg_temp(records)
-        print(f"Average: {avg:.1f}°C")
         return
 
     avg = avg_temp(records)

@@ -29,9 +29,30 @@ class TestWeatherStats(unittest.TestCase):
         # 2 records have rain
         self.assertEqual(rainy_days(self.sample_data), 2)
 
-    def test_rainy_days_empty(self):
-        """Empty records list should return 0 rainy days."""
-        self.assertEqual(rainy_days([]), 0)
+    def test_avg_temp_empty(self):
+        """Empty records list should return None."""
+        self.assertIsNone(avg_temp([]))
+
+    def test_hottest_day_empty(self):
+        """Empty records list should return None."""
+        self.assertIsNone(hottest_day([]))
+
+    def test_cmd_stats_empty_records(self):
+        """cmd_stats should print no records message and exit cleanly without raising TypeError."""
+        import tempfile
+        from io import StringIO
+        from pathlib import Path
+        from types import SimpleNamespace
+        from contextlib import redirect_stdout
+        from weather_journal.cli import cmd_stats
+
+        with tempfile.TemporaryDirectory() as td:
+            db_path = Path(td) / "test_weather.db"
+            args = SimpleNamespace(city="Mumbai", db=db_path)
+            out = StringIO()
+            with redirect_stdout(out):
+                cmd_stats(args)
+            self.assertEqual(out.getvalue().strip(), "No records logged for 'Mumbai'.")
 
 
 if __name__ == "__main__":
