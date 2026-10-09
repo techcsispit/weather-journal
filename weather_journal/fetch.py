@@ -115,14 +115,22 @@ def get_current(city, api_key=None, cache_path=None):
                 raise ValueError(f"Network error: {e}")
             time.sleep(2 ** attempt)
 
-    data = resp.json()
-
     if resp.status_code == 401:
         raise ValueError("Invalid API key.")
     elif resp.status_code == 404:
         raise ValueError(f"City '{city}' not found.")
     elif resp.status_code != 200:
-        raise ValueError(f"API Error: {data.get('message', 'Unknown error')}")
+        try:
+            err_data = resp.json()
+            err_msg = err_data.get("message", "Unknown error")
+        except Exception:
+            err_msg = resp.text or "Unknown error"
+        raise ValueError(f"API Error: {err_msg}")
+
+    try:
+        data = resp.json()
+    except Exception as e:
+        raise ValueError(f"Invalid JSON in API response: {e}")
 
     result = {
         "city": data["name"],
