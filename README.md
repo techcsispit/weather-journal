@@ -31,6 +31,7 @@ On Windows, use `python` instead of `python3`, and `set OWM_API_KEY=your-key`.
 - A city that doesn't exist, or a wrong API key, gives a clear message saying which one it was.
 - `stats` for a city with nothing logged just says so.
 - Rainy days counts days, not entries: logging three times on one wet day is one rainy day. Drizzle and thunderstorms count as rain.
+- Successful weather responses are cached in `.cache/weather.db` for 10 minutes and reused across separate CLI runs.
 
 ## Code
 
