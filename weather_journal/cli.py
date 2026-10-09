@@ -3,7 +3,12 @@
 import argparse
 import sys
 from weather_journal.fetch import get_current
-from weather_journal.store import save_entry, get_history, DEFAULT_DB_PATH
+from weather_journal.store import (
+    AmbiguousLocationError,
+    save_entry,
+    get_history,
+    DEFAULT_DB_PATH,
+)
 from weather_journal.stats import avg_temp, hottest_day, rainy_days
 
 
@@ -19,12 +24,19 @@ def cmd_log(args):
         print(f"Error fetching weather: {e}")
         return
 
-    save_entry(data["city"], data["temp"], data["humidity"], data["condition"], db_path=args.db)
+    save_entry(
+        data["city"], data["temp"], data["humidity"], data["condition"],
+        db_path=args.db, location=data["location"],
+    )
     print(f"Logged: {data['city']} - {data['temp']}°C, {data['humidity']}% humidity, {data['condition']}")
 
 
 def cmd_history(args):
-    records = get_history(args.city, db_path=args.db)
+    try:
+        records = get_history(args.city, db_path=args.db)
+    except AmbiguousLocationError as error:
+        print(error)
+        return
     if not records:
         print("No records found.")
         return
@@ -35,11 +47,15 @@ def cmd_history(args):
     print(f"{'City':<16} {'Temp':<10} {'Humidity':<12} {'Condition':<20} {'Logged At':<18}")
     print("-" * 75)
     for r in records:
-        print(f"{r['city']:<16} {r['temp']}°C{'':<6} {r['humidity']}%{'':<8} {r['condition']:<20} {r['logged_at']}")
+        print(f"{r['location_label']:<16} {r['temp']}°C{'':<6} {r['humidity']}%{'':<8} {r['condition']:<20} {r['logged_at']}")
 
 
 def cmd_stats(args):
-    records = get_history(args.city, db_path=args.db)
+    try:
+        records = get_history(args.city, db_path=args.db)
+    except AmbiguousLocationError as error:
+        print(error)
+        return
     if not records:
         print(f"No records logged for '{args.city}'.")
         return

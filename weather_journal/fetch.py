@@ -53,7 +53,15 @@ def get_current(city, api_key=None):
         "city": data["name"],
         "temp": round(data["main"]["temp"], 1),
         "humidity": data["main"]["humidity"],
-        "condition": data["weather"][0]["description"]
+        "condition": data["weather"][0]["description"],
+        "location": {
+            "provider": "openweathermap",
+            "provider_id": data["id"],
+            "requested_name": city,
+            "country": data.get("sys", {}).get("country"),
+            "latitude": data.get("coord", {}).get("lat"),
+            "longitude": data.get("coord", {}).get("lon"),
+        },
     }
     
     _cache[city_lower] = (time.time(), result)

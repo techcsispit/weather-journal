@@ -16,7 +16,10 @@ class TestFetch(unittest.TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
+            "id": 2643743,
             "name": "London",
+            "coord": {"lat": 51.5074, "lon": -0.1278},
+            "sys": {"country": "GB"},
             "main": {"temp": 15.6, "humidity": 80},
             "weather": [{"description": "light rain"}]
         }
@@ -28,6 +31,8 @@ class TestFetch(unittest.TestCase):
         self.assertEqual(result["temp"], 15.6)
         self.assertEqual(result["humidity"], 80)
         self.assertEqual(result["condition"], "light rain")
+        self.assertEqual(result["location"]["provider_id"], 2643743)
+        self.assertEqual(result["location"]["requested_name"], "London")
         mock_get.assert_called_once()
 
     @patch("weather_journal.fetch.requests.get")
@@ -35,7 +40,10 @@ class TestFetch(unittest.TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
+            "id": 2988507,
             "name": "Paris",
+            "coord": {"lat": 48.8534, "lon": 2.3488},
+            "sys": {"country": "FR"},
             "main": {"temp": 20.0, "humidity": 50},
             "weather": [{"description": "clear sky"}]
         }
