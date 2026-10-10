@@ -29,14 +29,33 @@ def get_connection(db_path=DEFAULT_DB_PATH):
 
 
 def save_entry(city, temp, humidity, condition, logged_at=None, db_path=DEFAULT_DB_PATH):
-    """Saves a weather observation record to the database."""
+    """Saves a weather observation record to the database.
+
+    Validates that:
+    - city is not empty
+    - temp is between -50 and 60°C (reasonable Earth range)
+    - humidity is between 0 and 100%
+    """
+    if not city or not city.strip():
+        raise ValueError("City name cannot be empty")
+    if not isinstance(temp, (int, float)):
+        raise ValueError(f"Temperature must be a number, got {type(temp).__name__}")
+    if temp < -50 or temp > 60:
+        raise ValueError(f"Temperature {temp}°C is outside valid range (-50 to 60°C)")
+    if not isinstance(humidity, int):
+        raise ValueError(f"Humidity must be an integer, got {type(humidity).__name__}")
+    if humidity < 0 or humidity > 100:
+        raise ValueError(f"Humidity {humidity}% is outside valid range (0-100%)")
+    if not condition or not condition.strip():
+        raise ValueError("Weather condition cannot be empty")
+
     conn = get_connection(db_path)
     cursor = conn.cursor()
     ts = logged_at or datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     cursor.execute("""
         INSERT INTO entries (city, temp, humidity, condition, logged_at)
         VALUES (?, ?, ?, ?, ?)
-    """, (city, temp, humidity, condition, ts))
+    """, (city.strip(), temp, humidity, condition.strip(), ts))
     conn.commit()
     conn.close()
 
