@@ -1,25 +1,100 @@
 """Weather data fetching module via OpenWeatherMap API."""
 
+import json
 import os
-import requests
+import sqlite3
 import time
+from pathlib import Path
+
+import requests
 
 API_BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
+CACHE_TTL_SECONDS = 600
+DEFAULT_CACHE_PATH = Path(__file__).resolve().parent.parent / ".cache" / "weather.db"
 
+# Keep a small process-local first-level cache as an optimization. SQLite below
+# is the source of truth that makes the cache survive separate CLI runs.
 _cache = {}
 
 
+def _cache_path(cache_path=None):
+    configured_path = cache_path or os.environ.get("WEATHER_JOURNAL_CACHE")
+    return Path(configured_path) if configured_path else DEFAULT_CACHE_PATH
 
-def get_current(city, api_key=None):
-    """Fetches current weather for a city from OpenWeatherMap.
-    
-    Returns a dictionary with temperature, humidity, and condition description.
-    """
-    city_lower = city.lower()
-    if city_lower in _cache:
-        cached_time, cached_data = _cache[city_lower]
-        if time.time() - cached_time < 600:
-            return cached_data
+
+def _connect_cache(cache_path):
+    path = _cache_path(cache_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(path), timeout=5)
+    conn.execute("PRAGMA busy_timeout = 5000")
+    conn.execute("PRAGMA journal_mode = WAL")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS weather_cache (
+            city_key TEXT PRIMARY KEY,
+            fetched_at REAL NOT NULL,
+            payload TEXT NOT NULL
+        )
+    """)
+    return conn
+
+
+def _read_cache(city_key, cache_path, now):
+    memory_entry = _cache.get(city_key)
+    if memory_entry and now - memory_entry[0] < CACHE_TTL_SECONDS:
+        return memory_entry[1]
+
+    conn = _connect_cache(cache_path)
+    try:
+        row = conn.execute(
+            "SELECT fetched_at, payload FROM weather_cache WHERE city_key = ?",
+            (city_key,),
+        ).fetchone()
+        if row is None:
+            return None
+
+        fetched_at, payload = row
+        if now - fetched_at >= CACHE_TTL_SECONDS or fetched_at > now:
+            conn.execute("DELETE FROM weather_cache WHERE city_key = ?", (city_key,))
+            conn.commit()
+            return None
+
+        try:
+            data = json.loads(payload)
+        except (TypeError, ValueError):
+            conn.execute("DELETE FROM weather_cache WHERE city_key = ?", (city_key,))
+            conn.commit()
+            return None
+    finally:
+        conn.close()
+
+    _cache[city_key] = (fetched_at, data)
+    return data
+
+
+def _write_cache(city_key, data, cache_path, fetched_at):
+    payload = json.dumps(data, separators=(",", ":"), sort_keys=True)
+    conn = _connect_cache(cache_path)
+    try:
+        conn.execute("""
+            INSERT INTO weather_cache (city_key, fetched_at, payload)
+            VALUES (?, ?, ?)
+            ON CONFLICT(city_key) DO UPDATE SET
+                fetched_at = excluded.fetched_at,
+                payload = excluded.payload
+        """, (city_key, fetched_at, payload))
+        conn.commit()
+    finally:
+        conn.close()
+    _cache[city_key] = (fetched_at, data)
+
+
+def get_current(city, api_key=None, cache_path=None):
+    """Fetch current weather, reusing results cached for ten minutes."""
+    city_key = city.strip().casefold()
+    now = time.time()
+    cached_data = _read_cache(city_key, cache_path, now)
+    if cached_data is not None:
+        return cached_data
 
     key = api_key or os.environ.get("OWM_API_KEY")
     if not key:
@@ -63,6 +138,6 @@ def get_current(city, api_key=None):
         "humidity": data["main"]["humidity"],
         "condition": data["weather"][0]["description"]
     }
-    
-    _cache[city_lower] = (time.time(), result)
+
+    _write_cache(city_key, result, cache_path, time.time())
     return result
