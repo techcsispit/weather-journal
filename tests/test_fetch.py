@@ -25,7 +25,10 @@ class TestFetch(unittest.TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
+            "id": 2643743,
             "name": "London",
+            "coord": {"lat": 51.5074, "lon": -0.1278},
+            "sys": {"country": "GB"},
             "main": {"temp": 15.6, "humidity": 80},
             "weather": [{"description": "light rain"}]
         }
@@ -37,6 +40,8 @@ class TestFetch(unittest.TestCase):
         self.assertEqual(result["temp"], 15.6)
         self.assertEqual(result["humidity"], 80)
         self.assertEqual(result["condition"], "light rain")
+        self.assertEqual(result["location"]["provider_id"], 2643743)
+        self.assertEqual(result["location"]["requested_name"], "London")
         mock_get.assert_called_once()
 
     @patch("weather_journal.fetch.requests.get")
@@ -44,7 +49,10 @@ class TestFetch(unittest.TestCase):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
         mock_resp.json.return_value = {
+            "id": 2988507,
             "name": "Paris",
+            "coord": {"lat": 48.8534, "lon": 2.3488},
+            "sys": {"country": "FR"},
             "main": {"temp": 20.0, "humidity": 50},
             "weather": [{"description": "clear sky"}]
         }
@@ -161,6 +169,21 @@ with patch("weather_journal.fetch.requests.get", side_effect=AssertionError("API
         self.assertEqual(kwargs["params"].get("units"), "metric")
         self.assertEqual(kwargs["params"].get("q"), "Tokyo")
         self.assertEqual(kwargs["params"].get("appid"), "test-key")
+
+    @patch("weather_journal.fetch.requests.get")
+    def test_success_response_without_location_id_does_not_crash(self, mock_get):
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "name": "Tokyo",
+            "main": {"temp": 22.4, "humidity": 65},
+            "weather": [{"description": "clear sky"}],
+        }
+        mock_get.return_value = mock_resp
+
+        result = get_current("Tokyo", api_key="test-key", cache_path=self.cache_path)
+
+        self.assertIsNone(result["location"]["provider_id"])
 
     @patch("weather_journal.fetch.requests.get")
     def test_invalid_api_key_401(self, mock_get):
