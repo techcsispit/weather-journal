@@ -13,7 +13,7 @@ class AmbiguousLocationError(ValueError):
     def __init__(self, selector, locations):
         self.selector = selector
         self.locations = locations
-        choices = ", ".join(location["location_label"] for location in locations)
+        choices = ", ".join(_selector_label(location) for location in locations)
         super().__init__(f"Location '{selector}' is ambiguous. Choose one of: {choices}")
 
 
@@ -27,6 +27,19 @@ def _location_label(name, requested_name, country, latitude, longitude, provider
         label += f" ({latitude:.4f}, {longitude:.4f})"
     if provider_id:
         label += f" [owm:{provider_id}]"
+    return label
+
+
+def _selector_label(location):
+    """The label to suggest for a location, and to accept as its selector.
+
+    Manual entries are labelled with the bare name the user typed, which also
+    matches every other location of that name, so they get a ``[manual]`` tag
+    (the same way legacy rows carry ``[legacy]``).
+    """
+    label = location["location_label"]
+    if location["provider"] == "manual":
+        return f"{label} [manual]"
     return label
 
 
@@ -169,8 +182,9 @@ def _matching_locations(conn, selector):
             WHERE LOWER(location_label) = LOWER(?)
                OR LOWER(requested_name) = LOWER(?)
                OR LOWER(name) = LOWER(?)
+               OR (provider = 'manual' AND LOWER(location_label || ' [manual]') = LOWER(?))
             ORDER BY location_label
-        """, (selector, selector, selector)).fetchall()
+        """, (selector, selector, selector, selector)).fetchall()
     return [dict(row) for row in rows]
 
 
