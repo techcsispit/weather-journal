@@ -54,6 +54,16 @@ class TestLocationIdentity(unittest.TestCase):
         self.assertIn("owm:4250542", str(context.exception))
         self.assertIn("owm:4409896", str(context.exception))
 
+    def test_coordinates_are_fallback_identity_when_provider_id_is_missing(self):
+        self._save_springfield(None, "Springfield,IL,US", 39.8, 10.0)
+        self._save_springfield(None, "Springfield,MO,US", 37.2, 30.0)
+
+        illinois = get_history("owm:coord:39.800000,-90.000000", db_path=self.db_path)
+        missouri = get_history("owm:coord:37.200000,-90.000000", db_path=self.db_path)
+
+        self.assertEqual([entry["temp"] for entry in illinois], [10.0])
+        self.assertEqual([entry["temp"] for entry in missouri], [30.0])
+
     def test_old_database_rows_are_preserved_as_legacy_location(self):
         conn = sqlite3.connect(str(self.db_path))
         conn.execute("""

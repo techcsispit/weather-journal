@@ -32,6 +32,7 @@ On Windows, use `python` instead of `python3`, and `set OWM_API_KEY=your-key`.
 - `stats` for a city with nothing logged just says so.
 - Rainy days counts days, not entries: logging three times on one wet day is one rainy day. Drizzle and thunderstorms count as rain.
 - Locations returned by OpenWeatherMap are stored by their stable ID, so cities with the same name keep separate histories. If a bare city name is ambiguous, use the suggested full label or `owm:<id>` selector.
+- Successful weather responses are cached in `.cache/weather.db` for 10 minutes and reused across separate CLI runs.
 
 ## Code
 

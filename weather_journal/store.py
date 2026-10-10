@@ -107,7 +107,10 @@ def _get_or_create_location(conn, city, location):
     # Manual entries have no provider ID, so their full user-supplied location
     # text is their identity. API locations use the provider's stable city ID.
     if provider_id is None:
-        provider_id = requested_name.strip().casefold()
+        if provider == "openweathermap" and latitude is not None and longitude is not None:
+            provider_id = f"coord:{float(latitude):.6f},{float(longitude):.6f}"
+        else:
+            provider_id = requested_name.strip().casefold()
     provider_id = str(provider_id)
     label = _location_label(
         city, requested_name, country, latitude, longitude,
