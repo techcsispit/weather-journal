@@ -8,8 +8,12 @@ from weather_journal.stats import avg_temp, hottest_day, rainy_days
 
 
 def cmd_add(args):
-    save_entry(args.city, args.temp, args.humidity, args.condition, db_path=args.db)
-    print(f"Logged manually: {args.city} - {args.temp}°C, {args.humidity}% humidity, {args.condition}")
+    try:
+        save_entry(args.city, args.temp, args.humidity, args.condition, db_path=args.db)
+        print(f"Logged manually: {args.city} - {args.temp}°C, {args.humidity}% humidity, {args.condition}")
+    except ValueError as e:
+        print(f"Error: {e}")
+        sys.exit(1)
 
 
 def cmd_log(args):
