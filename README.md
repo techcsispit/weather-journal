@@ -22,6 +22,7 @@ On Windows, use `python` instead of `python3`, and `set OWM_API_KEY=your-key`.
 | Command | Does |
 |---|---|
 | `log <city> [--key KEY]` | Fetches the current weather and saves it |
+| `add <city> <temp> <humidity> <condition>` | Saves an entry you type in by hand (temperature in °C, humidity in %), so no API key is needed |
 | `history [city]` | Everything logged, newest first. Just one city if you name it |
 | `stats <city>` | Number of entries, average temperature, hottest day, rainy days |
 
