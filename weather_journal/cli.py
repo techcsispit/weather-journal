@@ -16,12 +16,8 @@ EXIT_FAILURE = 1
 
 
 def cmd_add(args):
-    try:
-        save_entry(args.city, args.temp, args.humidity, args.condition, db_path=args.db)
-        print(f"Logged manually: {args.city} - {args.temp}°C, {args.humidity}% humidity, {args.condition}")
-    except ValueError as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    save_entry(args.city, args.temp, args.humidity, args.condition, db_path=args.db)
+    print(f"Logged manually: {args.city} - {args.temp}°C, {args.humidity}% humidity, {args.condition}")
 
 
 def cmd_log(args):

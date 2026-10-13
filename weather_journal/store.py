@@ -141,28 +141,7 @@ def _get_or_create_location(conn, city, location):
 
 def save_entry(city, temp, humidity, condition, logged_at=None,
                db_path=DEFAULT_DB_PATH, location=None):
-    """Save a weather observation with validation and stable location identity.
-
-    Validates that:
-    - city is not empty
-    - temp is between -50 and 60°C (reasonable Earth range)
-    - humidity is between 0 and 100%
-    - condition is not empty
-    """
-    # Validate inputs
-    if not city or not city.strip():
-        raise ValueError("City name cannot be empty")
-    if not isinstance(temp, (int, float)):
-        raise ValueError(f"Temperature must be a number, got {type(temp).__name__}")
-    if temp < -50 or temp > 60:
-        raise ValueError(f"Temperature {temp}°C is outside valid range (-50 to 60°C)")
-    if not isinstance(humidity, int):
-        raise ValueError(f"Humidity must be an integer, got {type(humidity).__name__}")
-    if humidity < 0 or humidity > 100:
-        raise ValueError(f"Humidity {humidity}% is outside valid range (0-100%)")
-    if not condition or not condition.strip():
-        raise ValueError("Weather condition cannot be empty")
-
+    """Save a weather observation with a stable location identity."""
     conn = get_connection(db_path)
     try:
         location_id = _get_or_create_location(conn, city, location)
@@ -171,7 +150,7 @@ def save_entry(city, temp, humidity, condition, logged_at=None,
             INSERT INTO entries
                 (city, temp, humidity, condition, logged_at, location_id)
             VALUES (?, ?, ?, ?, ?, ?)
-        """, (city.strip(), temp, humidity, condition.strip(), ts, location_id))
+        """, (city, temp, humidity, condition, ts, location_id))
         conn.commit()
     finally:
         conn.close()
