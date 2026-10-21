@@ -125,9 +125,8 @@ def _get_schema_version(conn):
 
 
 def _set_schema_version(conn, version):
-    """Set the PRAGMA user_version and commit the change to disk."""
+    """Set ``PRAGMA user_version`` in the caller's transaction."""
     conn.execute(f"PRAGMA user_version = {version}")
-    conn.commit()
 
 
 def _table_exists(conn, table):
@@ -147,8 +146,21 @@ def _apply_migration_step(conn, index):
     is never left partially migrated and a retry can safely resume.
     """
     _description, statements = SCHEMA_VERSIONS[index]
-    conn.execute("BEGIN")
+    target_version = index + 1
+
+    # Reserve the write lock before inspecting the schema.  A deferred
+    # transaction would let multiple processes read the same old version and
+    # then deadlock while both try to upgrade to a write lock.  IMMEDIATE makes
+    # later migrators wait here instead.
+    conn.execute("BEGIN IMMEDIATE")
     try:
+        # Another process may have completed this step while this connection
+        # was waiting for the write lock.  Re-check under the lock so completed
+        # migrations are not applied twice.
+        if _get_schema_version(conn) >= target_version:
+            conn.commit()
+            return False
+
         for statement, params in statements:
             if statement.startswith("ALTER TABLE entries ADD COLUMN location_id"):
                 # Skip when the column already exists so the step stays
@@ -162,7 +174,7 @@ def _apply_migration_step(conn, index):
                     if "location_id" in columns:
                         continue
             conn.execute(statement, params or ())
-        _set_schema_version(conn, index + 1)
+        _set_schema_version(conn, target_version)
         conn.commit()
     except Exception:
         conn.rollback()
