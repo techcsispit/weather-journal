@@ -12,6 +12,8 @@ historical schema versions (a requirement of issue #30):
 """
 
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -23,6 +25,7 @@ from weather_journal.store import (
     _get_schema_version,
     get_connection,
     get_history,
+    save_entry,
 )
 
 
@@ -358,6 +361,74 @@ class TestIdempotentInitialization(unittest.TestCase):
             self.assertEqual(_get_schema_version(verify), LATEST_SCHEMA_VERSION)
         finally:
             verify.close()
+
+
+class TestConcurrentMigration(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.temp_dir.cleanup()
+
+    def _run_concurrent_saves(self, db_path, cities):
+        script = (
+            "import sys\n"
+            "from weather_journal.store import save_entry\n"
+            "save_entry(sys.argv[2], 25.0, 60, 'clear sky', db_path=sys.argv[1])\n"
+        )
+        processes = [
+            subprocess.Popen(
+                [sys.executable, "-c", script, str(db_path), city],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            for city in cities
+        ]
+
+        results = []
+        for process in processes:
+            results.append(process.communicate(timeout=10))
+
+        for process, (_stdout, stderr) in zip(processes, results):
+            self.assertEqual(process.returncode, 0, stderr)
+
+    def test_concurrent_commands_preserve_entries_during_migration(self):
+        db_path = Path(self.temp_dir.name) / "existing.db"
+        save_entry("Mumbai", 30.0, 80, "haze", db_path=db_path)
+        conn = sqlite3.connect(str(db_path))
+        try:
+            conn.execute("PRAGMA user_version = 0")
+            conn.commit()
+        finally:
+            conn.close()
+
+        self._run_concurrent_saves(db_path, ("Pune", "Delhi"))
+
+        conn = sqlite3.connect(str(db_path))
+        try:
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0],
+                3,
+            )
+            self.assertEqual(_get_schema_version(conn), LATEST_SCHEMA_VERSION)
+        finally:
+            conn.close()
+
+    def test_concurrent_commands_can_initialize_a_new_database(self):
+        db_path = Path(self.temp_dir.name) / "new.db"
+
+        self._run_concurrent_saves(db_path, ("Pune", "Delhi"))
+
+        conn = sqlite3.connect(str(db_path))
+        try:
+            self.assertEqual(
+                conn.execute("SELECT COUNT(*) FROM entries").fetchone()[0],
+                2,
+            )
+            self.assertEqual(_get_schema_version(conn), LATEST_SCHEMA_VERSION)
+        finally:
+            conn.close()
 
 
 class TestLegacyCompatibilityPreserved(unittest.TestCase):
