@@ -20,7 +20,22 @@ def hottest_day(entries):
 
 
 def rainy_days(entries):
-    """Counts how many entries observed rain."""
+    """Counts unique calendar days that observed rain, drizzle, or thunderstorms."""
     if not entries:
         return 0
-    return sum(1 for e in entries if "rain" in e.get("condition", "").lower())
+
+    rain_keywords = ("rain", "drizzle", "thunderstorm")
+    rainy_dates = set()
+
+    for e in entries:
+        condition = (e.get("condition") or "").lower()
+        if any(keyword in condition for keyword in rain_keywords):
+            logged_at = e.get("logged_at") or ""
+            date_str = logged_at.split()[0] if logged_at else None
+            if date_str:
+                rainy_dates.add(date_str)
+            else:
+                # If logged_at is missing, treat the entry itself as a rainy occurrence
+                rainy_dates.add(id(e))
+
+    return len(rainy_dates)

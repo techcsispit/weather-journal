@@ -77,7 +77,7 @@ def cmd_stats(args):
     print(f"  • Average Temperature: {avg:.1f}°C")
     if hot:
         print(f"  • Hottest Day: {hot['temp']}°C on {hot['logged_at']}")
-    print(f"  • Rainy Observations: {rain}")
+    print(f"  • Rainy Days: {rain}")
     return 0
 
 
